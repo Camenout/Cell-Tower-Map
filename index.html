@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта вышек сотовой связи</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 14px;
+            border-left: 4px solid #ff0000;
+            max-width: 260px;
+        }
+        .controls-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 180px;
+        }
+        .points-panel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 250px;
+            overflow-y: auto;
+            font-size: 12px;
+            min-width: 220px;
+        }
+        .status-panel {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            color: #666;
+        }
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #e68900;
+        }
+        .btn-info {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #0b7dda;
+        }
+        .btn-success {
+            background: #009688;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #00796b;
+        }
+        .point-item {
+            padding: 5px 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 2px;
+        }
+        .point-item:hover {
+            background: #f0f0f0;
+        }
+        .distance-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+            float: right;
+        }
+        .title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .empty-message {
+            color: #999;
+            font-style: italic;
+        }
+        .coords-copy {
+            cursor: pointer;
+            color: #2196F3;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        .coords-copy:hover {
+            color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-panel" id="infoPanel">
+        <b>📡 Данные вышки</b><br>
+        <span id="towerInfo">Режим свободной карты</span>
+    </div>
+
+    <div class="controls-panel">
+        <div class="title">🎯 Управление</div>
+        <button class="btn btn-info" onclick="toggleAddMode()" id="modeBtn">
+            ✏️ Добавление: ВКЛ
+        </button>
+        <button class="btn btn-danger" onclick="removeLastPoint()">
+            ↩️ Удалить последнюю
+        </button>
+        <button class="btn btn-warning" onclick="clearAllPoints()">
+            🗑️ Очистить все
+        </button>
+        <button class="btn btn-primary" onclick="exportPoints()">
+            📋 Копировать координаты
+        </button>
+        <button class="btn btn-success" onclick="centerOnReference()">
+            🎯 Центр на точку отсчёта
+        </button>
+    </div>
+
+    <div class="points-panel">
+        <div class="title">📌 Точки (<span id="pointCount">0</span>)</div>
+        <div id="pointsContainer">Нет добавленных точек</div>
+    </div>
+
+    <div class="status-panel" id="statusPanel">
+        🗺️ Карта готова к работе
+    </div>
+
+    <!-- API Яндекса загружаем с ключом из URL или используем дефолтный -->
+    <script>
+        // Глобальные переменные
+        var map;
+        var referencePoint = null;  // Точка отсчёта (вышка или центр по умолчанию)
+        var addedPoints = [];
+        var addMode = true;
+        var yandexApiKey = null;
+        
+        // Координаты по умолчанию (центр Москвы)
+        var DEFAULT_COORDS = [55.751244, 37.618423];
+        var DEFAULT_ZOOM = 10;
+        
+        // Функция получения параметров из URL
+        function getUrlParams() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var dataParam = urlParams.get('data');
+            
+            if (!dataParam) {
+                return null; // Нет данных — работаем в свободном режиме
+            }
+            
+            try {
+                var decoded = decodeURIComponent(dataParam);
+                var parsed = JSON.parse(decoded);
+                return parsed;
+            } catch (e) {
+                showStatus('Ошибка парсинга данных: ' + e.message, true);
+                return null;
+            }
+        }
+        
+        // Отображение статуса
+        function showStatus(message, isError) {
+            var panel = document.getElementById('statusPanel');
+            panel.innerHTML = (isError ? '❌ ' : 'ℹ️ ') + message;
+            panel.style.color = isError ? '#c62828' : '#666';
+            
+            if (!isError) {
+                setTimeout(function() {
+                    panel.innerHTML = '🗺️ Карта готова к работе';
+                    panel.style.color = '#666';
+                }, 3000);
+            }
+        }
+        
+        // Загрузка API Яндекса
+        function loadYandexApi(apiKey) {
+            yandexApiKey = apiKey;
+            var script = document.createElement('script');
+            script.src = 'https://api-maps.yandex.ru/2.1/?apikey=' + apiKey + '&lang=ru_RU';
+            script.type = 'text/javascript';
+            script.onload = function() {
+                ymaps.ready(initMap);
+            };
+            script.onerror = function() {
+                showStatus('Ошибка загрузки API Яндекса. Проверьте ключ.', true);
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Инициализация карты
+        function initMap() {
+            var params = getUrlParams();
+            var centerCoords = DEFAULT_COORDS;
+            var zoom = DEFAULT_ZOOM;
+            var hasTowerData = false;
+            
+            if (params && params[0]) {
+                var data = params[0];
+                centerCoords = data.coords || DEFAULT_COORDS;
+                zoom = 14;
+                hasTowerData = true;
+                
+                // Сохраняем точку отсчёта (вышку)
+                referencePoint = {
+                    coords: centerCoords,
+                    radius: data.radius || 100,
+                    mcc: data.mcc || '—',
+                    mnc: data.mnc || '—',
+                    lac: data.lac || '—',
+                    cellid: data.cellid || '—',
+                    source: data.source || 'Неизвестно',
+                    isTower: true
+                };
+                
+                updateInfoPanel();
+                showStatus('Загружены данные вышки: ' + referencePoint.mcc + '/' + referencePoint.mnc, false);
+            } else {
+                // Свободный режим — точка отсчёта = центр карты по умолчанию
+                referencePoint = {
+                    coords: DEFAULT_COORDS,
+                    radius: 0,
+                    mcc: '—',
+                    mnc: '—',
+                    lac: '—',
+                    cellid: '—',
+                    source: 'Свободный режим',
+                    isTower: false
+                };
+                
+                document.getElementById('towerInfo').innerHTML = 
+                    '🗺️ <b>Свободный режим</b><br>' +
+                    '<span style="color: #666; font-size: 12px;">' +
+                    'Центр: ' + DEFAULT_COORDS[0].toFixed(6) + ', ' + DEFAULT_COORDS[1].toFixed(6) + '<br>' +
+                    'Добавляйте точки кликом по карте</span>';
+                
+                showStatus('Свободный режим. Точка отсчёта: центр Москвы', false);
+            }
+            
+            // Создаём карту
+            map = new ymaps.Map("map", {
+                center: centerCoords,
+                zoom: zoom,
+                controls: ['zoomControl', 'fullscreenControl', 'typeSelector', 'geolocationControl']
+            });
+            
+            // Если есть данные вышки — добавляем круг и метку
+            if (hasTowerData) {
+                addTowerToMap();
+            } else {
+                // В свободном режиме добавляем метку центра
+                addReferenceMarker();
+            }
+            
+            // Обработчик клика для добавления точек
+            map.events.add('click', function(e) {
+                if (addMode) {
+                    addPoint(e.get('coords'));
+                }
+            });
+            
+            showStatus('Карта загружена. Кликайте для добавления точек', false);
+        }
+        
+        // Добавление вышки на карту
+        function addTowerToMap() {
+            if (!referencePoint || !referencePoint.isTower) return;
+            
+            var coords = referencePoint.coords;
+            var radius = referencePoint.radius;
+            
+            // Круг точности
+            var circle = new ymaps.Circle(
+                [coords, radius],
+                {},
+                {
+                    fillColor: "#FF000033",
+                    strokeColor: "#FF0000",
+                    strokeWidth: 2,
+                    strokeStyle: "solid"
+                }
+            );
+            
+            // Метка вышки
+            var towerPlacemark = new ymaps.Placemark(
+                coords,
+                {
+                    balloonContentHeader: "📡 Вышка сотовой связи",
+                    balloonContentBody: getTowerBalloonContent(),
+                    hintContent: "Вышка"
+                },
+                {
+                    preset: 'islands#redIcon',
+                    iconColor: '#ff0000'
+                }
+            );
+            
+            map.geoObjects.add(circle);
+            map.geoObjects.add(towerPlacemark);
+            
+            setTimeout(function() {
+                towerPlacemark.balloon.open();
+            }, 500);
+        }
+        
+        // Добавление метки-ориентира в свободном режиме
+        function addReferenceMarker() {
+            var coords = referencePoint.coords;
+            
+            var marker = new ymaps.Placemark(
+                coords,
+                {
+                    balloonContentHeader: "📍 Точка отсчёта",
+                    balloonContentBody: 
+                        '<b>Координаты:</b><br>' +
+                        '<span class="coords-copy" onclick="copyCoords(' + coords[0] + ', ' + coords[1] + ')">' +
+                        coords[0].toFixed(6) + ', ' + coords[1].toFixed(6) + ' 📋</span><br>' +
+                        '<b>Режим:</b> Свободная карта<br>' +
+                        '<i>Расстояния считаются от этой точки</i>',
+                    hintContent: "Точка отсчёта"
+                },
+                {
+                    preset: 'islands#darkGreenIcon',
+                    iconColor: '#4CAF50'
+                }
+            );
+            
+            map.geoObjects.add(marker);
+        }
+        
+        // Формирование содержимого балуна вышки
+        function getTowerBalloonContent() {
+            if (!referencePoint) return '';
+            
+            return '<b>MCC:</b> ' + referencePoint.mcc + '<br>' +
+                   '<b>MNC:</b> ' + referencePoint.mnc + '<br>' +
+                   '<b>LAC:</b> ' + referencePoint.lac + '<br>' +
+                   '<b>CELLID:</b> ' + referencePoint.cellid + '<br>' +
+                   '<b>Источник:</b> ' + referencePoint.source + '<br>' +
+                   '<b>Координаты:</b><br>' +
+                   '<span class="coords-copy" onclick="copyCoords(' + referencePoint.coords[0] + ', ' + referencePoint.coords[1] + ')">' +
+                   referencePoint.coords[0].toFixed(6) + ', ' + referencePoint.coords[1].toFixed(6) + ' 📋</span><br>' +
+                   '<b>Радиус точности:</b> ' + referencePoint.radius + ' м';
+        }
+        
+        // Обновление информационной панели
+        function updateInfoPanel() {
+            if (!referencePoint) return;
+            
+            if (referencePoint.isTower) {
+                var html = '<b>MCC:</b> ' + referencePoint.mcc + ' | <b>MNC:</b> ' + referencePoint.mnc + '<br>' +
+                           '<b>LAC:</b> ' + referencePoint.lac + ' | <b>CELLID:</b> ' + referencePoint.cellid + '<br>' +
+                           '<span style="color: #666; font-size: 12px;">' +
+                           '📍 <span class="coords-copy" onclick="copyCoords(' + referencePoint.coords[0] + ', ' + referencePoint.coords[1] + ')">' +
+                           referencePoint.coords[0].toFixed(6) + ', ' + referencePoint.coords[1].toFixed(6) + ' 📋</span><br>' +
+                           'Радиус: ' + referencePoint.radius + ' м | ' + referencePoint.source + '</span>';
+                
+                document.getElementById('towerInfo').innerHTML = html;
+            }
+        }
+        
+        // Копирование координат
+        function copyCoords(lat, lon) {
+            var text = lat.toFixed(6) + ', ' + lon.toFixed(6);
+            navigator.clipboard.writeText(text).then(function() {
+                showStatus('✅ Координаты скопированы: ' + text, false);
+            });
+        }
+        
+        // Вычисление расстояния между точками (в метрах)
+        function getDistance(coord1, coord2) {
+            var lat1 = coord1[0];
+            var lon1 = coord1[1];
+            var lat2 = coord2[0];
+            var lon2 = coord2[1];
+            
+            var R = 6371000;
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLon = (lon2 - lon1) * Math.PI / 180;
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return Math.round(R * c);
+        }
+        
+        // Добавление новой точки
+        function addPoint(coords) {
+            if (!referencePoint) return;
+            
+            var pointId = Date.now() + Math.random();
+            var distance = getDistance(referencePoint.coords, coords);
+            
+            var pointData = {
+                id: pointId,
+                coords: coords,
+                distance: distance
+            };
+            
+            var placemark = new ymaps.Placemark(
+                coords,
+                {
+                    balloonContentHeader: "📍 Точка #" + (addedPoints.length + 1),
+                    balloonContentBody: 
+                        '<b>Координаты:</b><br>' +
+                        '<span class="coords-copy" onclick="copyCoords(' + coords[0] + ', ' + coords[1] + ')">' +
+                        coords[0].toFixed(6) + ', ' + coords[1].toFixed(6) + ' 📋</span><br>' +
+                        '<b>Расстояние до точки отсчёта:</b> ' + distance + ' м',
+                    hintContent: "Точка " + (addedPoints.length + 1)
+                },
+                {
+                    preset: 'islands#blueIcon',
+                    iconColor: '#2196F3'
+                }
+            );
+            
+            pointData.placemark = placemark;
+            addedPoints.push(pointData);
+            map.geoObjects.add(placemark);
+            
+            updatePointsList();
+            showStatus('Добавлена точка #' + addedPoints.length, false);
+        }
+        
+        // Обновление списка точек
+        function updatePointsList() {
+            var container = document.getElementById('pointsContainer');
+            var countSpan = document.getElementById('pointCount');
+            
+            countSpan.textContent = addedPoints.length;
+            
+            if (addedPoints.length === 0) {
+                container.innerHTML = '<span class="empty-message">Нет добавленных точек</span>';
+                return;
+            }
+            
+            var html = '';
+            for (var i = 0; i < addedPoints.length; i++) {
+                var point = addedPoints[i];
+                var num = i + 1;
+                html += '<div class="point-item" onclick="focusOnPoint(' + point.id + ')">' +
+                        '<b>#' + num + '</b> ' +
+                        point.coords[0].toFixed(6) + ', ' + point.coords[1].toFixed(6) +
+                        '<span class="distance-badge">' + point.distance + ' м</span>' +
+                        '</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Фокусировка на точке
+        function focusOnPoint(pointId) {
+            for (var i = 0; i < addedPoints.length; i++) {
+                if (addedPoints[i].id === pointId) {
+                    map.setCenter(addedPoints[i].coords, 16);
+                    addedPoints[i].placemark.balloon.open();
+                    break;
+                }
+            }
+        }
+        
+        // Центрирование на точке отсчёта
+        function centerOnReference() {
+            if (referencePoint) {
+                map.setCenter(referencePoint.coords, referencePoint.isTower ? 14 : DEFAULT_ZOOM);
+                showStatus('Центр карты: точка отсчёта', false);
+            }
+        }
+        
+        // Удаление последней точки
+        function removeLastPoint() {
+            if (addedPoints.length > 0) {
+                var lastPoint = addedPoints.pop();
+                map.geoObjects.remove(lastPoint.placemark);
+                updatePointsList();
+                showStatus('Удалена последняя точка', false);
+            } else {
+                showStatus('Нет точек для удаления', true);
+            }
+        }
+        
+        // Очистка всех точек
+        function clearAllPoints() {
+            if (addedPoints.length > 0 && confirm('Удалить все добавленные точки?')) {
+                for (var i = 0; i < addedPoints.length; i++) {
+                    map.geoObjects.remove(addedPoints[i].placemark);
+                }
+                addedPoints = [];
+                updatePointsList();
+                showStatus('Все точки удалены', false);
+            }
+        }
+        
+        // Переключение режима добавления
+        function toggleAddMode() {
+            addMode = !addMode;
+            var btn = document.getElementById('modeBtn');
+            if (addMode) {
+                btn.innerHTML = '✏️ Добавление: ВКЛ';
+                btn.className = 'btn btn-info';
+                showStatus('Режим добавления точек включён', false);
+            } else {
+                btn.innerHTML = '🔒 Добавление: ВЫКЛ';
+                btn.className = 'btn btn-warning';
+                showStatus('Режим добавления точек выключен', true);
+            }
+        }
+        
+        // Экспорт всех координат
+        function exportPoints() {
+            if (!referencePoint) return;
+            
+            var text = '=== ТОЧКА ОТСЧЁТА ===\n' +
+                      referencePoint.coords[0].toFixed(6) + ', ' + referencePoint.coords[1].toFixed(6) + '\n';
+            
+            if (referencePoint.isTower) {
+                text += 'MCC: ' + referencePoint.mcc + ' MNC: ' + referencePoint.mnc + '\n' +
+                        'LAC: ' + referencePoint.lac + ' CELLID: ' + referencePoint.cellid + '\n' +
+                        'Радиус: ' + referencePoint.radius + ' м\n';
+            } else {
+                text += 'Режим: Свободная карта\n';
+            }
+            
+            text += '\n';
+            
+            if (addedPoints.length > 0) {
+                text += '=== ДОБАВЛЕННЫЕ ТОЧКИ ===\n';
+                for (var i = 0; i < addedPoints.length; i++) {
+                    var p = addedPoints[i];
+                    text += (i+1) + '. ' + p.coords[0].toFixed(6) + ', ' + p.coords[1].toFixed(6) +
+                            ' (расстояние: ' + p.distance + ' м)\n';
+                }
+            } else {
+                text += 'Нет добавленных точек';
+            }
+            
+            navigator.clipboard.writeText(text).then(function() {
+                showStatus('✅ Данные скопированы в буфер обмена!', false);
+            });
+        }
+        
+        // === ЗАПУСК ===
+        (function startup() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var apiKey = urlParams.get('apikey');
+            
+            if (!apiKey) {
+                // Если ключ не передан — показываем ошибку
+                document.getElementById('statusPanel').innerHTML = '❌ API-ключ Яндекса не передан. Добавьте параметр &apikey=...';
+                document.getElementById('statusPanel').style.color = '#c62828';
+                return;
+            }
+            
+            loadYandexApi(apiKey);
+        })();
+    </script>
+</body>
+</html>
