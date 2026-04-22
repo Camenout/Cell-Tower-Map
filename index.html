@@ -706,27 +706,41 @@
         function openInYandexMaps() {
             if (!referencePoint) return;
             
-            var points = [referencePoint.coords];
-            
-            // Добавляем все пользовательские точки
+            // Собираем все точки
+            var allPoints = [referencePoint.coords];
             for (var i = 0; i < addedPoints.length; i++) {
-                points.push(addedPoints[i].coords);
+                allPoints.push(addedPoints[i].coords);
             }
             
-            // Формируем URL для Яндекс.Карт
-            var url = 'https://yandex.ru/maps/?mode=whatshere&whatshere[point]=';
+            // Определяем центр карты (вышка или первая точка)
+            var center = referencePoint.coords;
             
-            // Добавляем точки через запятую в формате "lon,lat"
-            var pointStrings = points.map(function(p) {
-                return p[1].toFixed(6) + ',' + p[0].toFixed(6);
-            });
+            // Формируем URL с метками
+            // Используем формат: https://yandex.ru/maps/?ll=lon,lat&z=14&pt=lon1,lat1~lon2,lat2
             
-            // Яндекс.Карты принимают несколько точек через "~"
-            url += pointStrings.join('~');
-            url += '&z=14';
+            var ll = center[1].toFixed(6) + ',' + center[0].toFixed(6);
+            
+            // Формируем метки: красная для вышки, синие для остальных
+            var placemarks = [];
+            
+            // Вышка — красная метка (если это режим вышки)
+            if (referencePoint.isTower) {
+                placemarks.push(center[1].toFixed(6) + ',' + center[0].toFixed(6) + ',pm2rdl'); // pm2rdl = красная метка
+            } else {
+                placemarks.push(center[1].toFixed(6) + ',' + center[0].toFixed(6) + ',pm2gnl'); // зелёная для свободного режима
+            }
+            
+            // Добавленные точки — синие метки
+            for (var i = 0; i < addedPoints.length; i++) {
+                var p = addedPoints[i].coords;
+                placemarks.push(p[1].toFixed(6) + ',' + p[0].toFixed(6) + ',pm2blm'); // pm2blm = синяя метка
+            }
+            
+            // Собираем URL
+            var url = 'https://yandex.ru/maps/?ll=' + ll + '&z=14&pt=' + placemarks.join('~');
             
             window.open(url, '_blank');
-            showStatus('Открыто в Яндекс.Картах', false);
+            showStatus('Открыто в Яндекс.Картах (' + allPoints.length + ' точек)', false);
         }
         
         // === Запуск ===
