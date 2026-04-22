@@ -477,11 +477,16 @@
         function addTowerToMap() {
             var coords = referencePoint.coords;
             
-            // Круг точности
+            // Круг точности — делаем его некликабельным
             var circle = new ymaps.Circle(
                 [coords, referencePoint.radius],
                 {},
-                { fillColor: "#FF000033", strokeColor: "#FF0000", strokeWidth: 2 }
+                { 
+                    fillColor: "#FF000033", 
+                    strokeColor: "#FF0000", 
+                    strokeWidth: 2,
+                    interactive: false  // ✅ Круг больше не перехватывает клики
+                }
             );
             
             // Круглая метка
@@ -503,8 +508,6 @@
             
             map.geoObjects.add(circle);
             map.geoObjects.add(placemark);
-            
-            setTimeout(function() { placemark.balloon.open(); }, 500);
         }
         
         // === Метка в свободном режиме ===
