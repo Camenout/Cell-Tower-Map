@@ -592,27 +592,63 @@
                 return;
             }
             
-            // Парсим координаты
-            var parts = value.split(',').map(function(p) { return parseFloat(p.trim()); });
+            var lat, lon;
             
-            if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-                showStatus('Неверный формат. Пример: 55.751244, 37.618423', true);
+            // Очищаем строку: заменяем переносы строк на пробелы, убираем лишние пробелы
+            var cleanValue = value.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            // Пробуем разные форматы
+            
+            // Формат 1: "59.929623, 30.427795" (запятая)
+            if (cleanValue.includes(',')) {
+                var parts = cleanValue.split(',').map(function(p) { 
+                    return parseFloat(p.trim()); 
+                });
+                if (parts.length >= 2) {
+                    lat = parts[0];
+                    lon = parts[1];
+                }
+            } 
+            // Формат 2: "59.929623 30.427795" (пробел)
+            else if (cleanValue.includes(' ')) {
+                var parts = cleanValue.split(' ').map(function(p) { 
+                    return parseFloat(p.trim()); 
+                });
+                // Фильтруем NaN значения
+                parts = parts.filter(function(p) { return !isNaN(p); });
+                if (parts.length >= 2) {
+                    lat = parts[0];
+                    lon = parts[1];
+                }
+            }
+            // Формат 3: просто одно число? (не подходит)
+            else {
+                showStatus('Введите две координаты через запятую или пробел', true);
                 return;
             }
             
-            var lat = parts[0];
-            var lon = parts[1];
+            // Проверяем, что координаты распарсились
+            if (isNaN(lat) || isNaN(lon)) {
+                showStatus('Неверный формат координат', true);
+                return;
+            }
             
             // Проверка диапазона
-            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-                showStatus('Координаты вне допустимого диапазона', true);
+            if (lat < -90 || lat > 90) {
+                showStatus('Широта должна быть от -90 до 90', true);
                 return;
             }
             
+            if (lon < -180 || lon > 180) {
+                showStatus('Долгота должна быть от -180 до 180', true);
+                return;
+            }
+            
+            // Добавляем точку
             addPoint([lat, lon]);
             map.setCenter([lat, lon], 15);
             input.value = '';
-            showStatus('Точка добавлена: ' + lat.toFixed(6) + ', ' + lon.toFixed(6), false);
+            showStatus('✅ Точка добавлена: ' + lat.toFixed(6) + ', ' + lon.toFixed(6), false);
         }
         
         // === Обновление списка точек ===
