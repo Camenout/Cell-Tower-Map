@@ -33,14 +33,21 @@
             transform: translateX(0);
             opacity: 1;
         }
-
-        /* Кнопка сворачивания */
+        
+        .left-panel.collapsed {
+            transform: translateX(-300px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Кнопка-остров справа от панели */
         .toggle-panel-btn {
             position: absolute;
             top: 10px;
-            left: 290px; /* Ширина панели (280px) + отступ (10px) */
-            width: 56px; /* 1/5 от 280px */
-            height: auto;
+            left: 300px; /* 280px (ширина панели) + 10px (отступ панели) + 10px (отступ между) */
+            width: 45px;
+            height: 100%; /* Будет задано через JS */
+            min-height: 200px;
             background: white;
             border: none;
             border-radius: 8px;
@@ -52,13 +59,17 @@
             align-items: center;
             justify-content: center;
             gap: 5px;
-            padding: 12px 14px;
+            padding: 12px 10px;
             transition: all 0.3s ease;
         }
         
         .toggle-panel-btn:hover {
             background: #f5f5f5;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .toggle-panel-btn.panel-hidden {
+            left: 10px;
         }
         
         /* Три полоски */
@@ -69,26 +80,8 @@
             border-radius: 2px;
             transition: all 0.3s ease;
         }
-        
-        /* Анимация при сворачивании */
-        .toggle-panel-btn.collapsed .hamburger-line:nth-child(1) {
-            transform: translateY(8px) rotate(45deg);
-        }
-        
-        .toggle-panel-btn.collapsed .hamburger-line:nth-child(2) {
-            opacity: 0;
-        }
-        
-        .toggle-panel-btn.collapsed .hamburger-line:nth-child(3) {
-            transform: translateY(-8px) rotate(-45deg);
-        }
-        
-        /* Панель при сворачивании */
-        .left-panel.collapsed {
-            transform: translateX(-300px);
-            opacity: 0;
-            pointer-events: none;
-        }
+
+        /*Изменения выше /\ */
         
         .panel-section {
             margin-bottom: 16px;
@@ -389,9 +382,9 @@
 
         <!-- КНОПКА СВОРАЧИВАНИЯ -->
     <button class="toggle-panel-btn" id="togglePanelBtn" onclick="togglePanel()" title="Свернуть панель">
-        <div class="hamburger-line"></div>
-        <div class="hamburger-line"></div>
-        <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
     </button>
     
     <div class="status-bar" id="statusBar">
@@ -502,6 +495,10 @@
             map.events.add('click', function(e) {
                 if (addMode) addPoint(e.get('coords'));
             });
+
+            setTimeout(function() {
+            updateToggleButtonHeight();
+            }, 200);
         }
         
         // === Обновление карточки вышки ===
@@ -717,23 +714,38 @@
             showStatus('✅ Точка добавлена: ' + lat.toFixed(6) + ', ' + lon.toFixed(6), false);
         }
 
+        // === Сворачивание/разворачивание панели ===
         function togglePanel() {
             var panel = document.getElementById('leftPanel');
             var btn = document.getElementById('togglePanelBtn');
+            
+            if (!panel || !btn) return;
+            
             var isCollapsed = panel.classList.contains('collapsed');
             
             if (isCollapsed) {
-                // Разворачиваем
+                // Разворачиваем панель
                 panel.classList.remove('collapsed');
-                btn.classList.remove('collapsed');
-                btn.style.left = '290px';
+                btn.classList.remove('panel-hidden');
+                btn.style.left = '300px';
                 btn.title = 'Свернуть панель';
             } else {
-                // Сворачиваем
+                // Сворачиваем панель
                 panel.classList.add('collapsed');
-                btn.classList.add('collapsed');
+                btn.classList.add('panel-hidden');
                 btn.style.left = '10px';
                 btn.title = 'Развернуть панель';
+            }
+        }
+
+                // === Обновление высоты кнопки сворачивания ===
+        function updateToggleButtonHeight() {
+            var panel = document.getElementById('leftPanel');
+            var btn = document.getElementById('togglePanelBtn');
+            
+            if (panel && btn) {
+                var panelHeight = panel.offsetHeight;
+                btn.style.height = panelHeight + 'px';
             }
         }
         
@@ -892,6 +904,22 @@
             
             loadYandexApi(apiKey);
         })();
+
+        // Обновление позиции кнопки при изменении размеров окна
+        window.addEventListener('resize', function() {
+            var panel = document.getElementById('leftPanel');
+            var btn = document.getElementById('togglePanelBtn');
+            
+            updateToggleButtonHeight();
+            
+            if (panel && btn) {
+                if (panel.classList.contains('collapsed')) {
+                    btn.style.left = '10px';
+                } else {
+                    btn.style.left = '300px';
+                }
+            }
+        });
     </script>
 </body>
 </html>
