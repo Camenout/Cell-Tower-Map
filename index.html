@@ -447,46 +447,56 @@
         // === Загрузка зон из GeoJSON файла ===
         var greenZoneObjects = [];
 
+        // === Загрузка зон из GeoJSON ===
         function loadZonesFromGeoJSON(url) {
-            if (!map) return;
+            console.log('🔄 Загружаю зоны из:', url);
             
             fetch(url)
                 .then(function(response) {
                     if (!response.ok) {
-                        throw new Error('Файл не найден');
+                        throw new Error('HTTP ошибка: ' + response.status);
                     }
                     return response.json();
                 })
                 .then(function(data) {
-                    var geoObjects = ymaps.geoQuery(data).addToMap(map);
+                    console.log('📦 Файл загружен, зон:', data.features.length);
                     
-                    geoObjects.each(function(obj) {
-                        if (obj.geometry && obj.geometry.getType() === 'Polygon') {
-                            // Получаем цвета из GeoJSON
-                            var props = obj.properties;
-                            var fillColor = props.get('fill') || '#56db40';
-                            var strokeColor = props.get('stroke') || '#1bad03';
-                            var fillOpacity = props.get('fill-opacity') || 0.4;
-                            var strokeWidth = props.get('stroke-width') || 3;
+                    // Перебираем все зоны вручную
+                    for (var i = 0; i < data.features.length; i++) {
+                        var feature = data.features[i];
+                        
+                        if (feature.geometry.type === 'Polygon') {
+                            // Координаты в GeoJSON идут как [lon, lat],
+                            // а Яндекс.Карты ожидают [lat, lon] — переворачиваем
+                            var coords = feature.geometry.coordinates[0];
+                            var fixedCoords = [];
                             
-                            obj.options.set({
-                                fillColor: fillColor,
-                                strokeColor: strokeColor,
-                                strokeWidth: parseInt(strokeWidth),
-                                fillOpacity: parseFloat(fillOpacity),
-                                hasBalloon: false,
-                                hasHint: false,
-                                interactive: false
-                            });
+                            for (var j = 0; j < coords.length; j++) {
+                                fixedCoords.push([coords[j][1], coords[j][0]]); // меняем местами
+                            }
+                            
+                            // Создаём полигон
+                            var polygon = new ymaps.Polygon(
+                                [fixedCoords],
+                                {},
+                                {
+                                    fillColor: '#56db40',
+                                    strokeColor: '#1bad03',
+                                    strokeWidth: 3,
+                                    fillOpacity: 0.4,
+                                    hasBalloon: false,
+                                    hasHint: false
+                                }
+                            );
+                            
+                            map.geoObjects.add(polygon);
                         }
-                    });
+                    }
                     
-                    var count = data.features ? data.features.length : 0;
-                    showStatus('✅ Загружено зон из GeoJSON: ' + count, false);
+                    console.log('✅ Зоны добавлены. Объектов на карте:', map.geoObjects.getLength());
                 })
                 .catch(function(error) {
-                    console.log('Ошибка загрузки GeoJSON:', error.message);
-                    showStatus('⚠️ Зоны не загружены: ' + error.message, true);
+                    console.log('❌ Ошибка:', error.message);
                 });
         }
         
