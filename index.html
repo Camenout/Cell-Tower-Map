@@ -29,13 +29,14 @@
             z-index: 1000;
             font-size: 14px;
             width: 280px;
-            transition: all 0.3s ease;
             transform: translateX(0);
             opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
         
+        /* Панель скрыта */
         .left-panel.collapsed {
-            transform: translateX(-300px);
+            transform: translateX(-400px);
             opacity: 0;
             pointer-events: none;
         }
@@ -44,10 +45,9 @@
         .toggle-panel-btn {
             position: absolute;
             top: 10px;
-            left: 300px; /* 280px (ширина панели) + 10px (отступ панели) + 10px (отступ между) */
+            left: 300px; /* 280px (панель) + 10px (отступ панели) + 10px (зазор) */
             width: 45px;
-            height: 100%; /* Будет задано через JS */
-            min-height: 200px;
+            height: 120px; /* Фиксированная высота в пикселях */
             background: white;
             border: none;
             border-radius: 8px;
@@ -58,9 +58,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 5px;
-            padding: 12px 10px;
-            transition: all 0.3s ease;
+            gap: 6px;
+            padding: 10px;
+            transition: left 0.3s ease;
         }
         
         .toggle-panel-btn:hover {
@@ -68,6 +68,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         
+        /* Когда панель скрыта — кнопка слева */
         .toggle-panel-btn.panel-hidden {
             left: 10px;
         }
@@ -78,7 +79,6 @@
             height: 3px;
             background: #666;
             border-radius: 2px;
-            transition: all 0.3s ease;
         }
 
         /*Изменения выше /\ */
@@ -381,11 +381,11 @@
     </div>
 
         <!-- КНОПКА СВОРАЧИВАНИЯ -->
-    <button class="toggle-panel-btn" id="togglePanelBtn" onclick="togglePanel()" title="Свернуть панель">
-    <div class="hamburger-line"></div>
-    <div class="hamburger-line"></div>
-    <div class="hamburger-line"></div>
-    </button>
+        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="togglePanel()" title="Свернуть панель">
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+        </button>
     
     <div class="status-bar" id="statusBar">
         🗺️ Карта готова
@@ -719,18 +719,21 @@
             var panel = document.getElementById('leftPanel');
             var btn = document.getElementById('togglePanelBtn');
             
-            if (!panel || !btn) return;
+            if (!panel || !btn) {
+                console.log('Панель или кнопка не найдены!');
+                return;
+            }
             
             var isCollapsed = panel.classList.contains('collapsed');
             
             if (isCollapsed) {
-                // Разворачиваем панель
+                // Разворачиваем
                 panel.classList.remove('collapsed');
                 btn.classList.remove('panel-hidden');
                 btn.style.left = '300px';
                 btn.title = 'Свернуть панель';
             } else {
-                // Сворачиваем панель
+                // Сворачиваем
                 panel.classList.add('collapsed');
                 btn.classList.add('panel-hidden');
                 btn.style.left = '10px';
