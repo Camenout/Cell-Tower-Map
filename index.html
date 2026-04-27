@@ -45,7 +45,7 @@
         .toggle-panel-btn {
             position: absolute;
             top: 10px;
-            left: 300px; /* 280px (панель) + 10px (отступ панели) + 10px (зазор) */
+            left: 330px; /* 280px (панель) + 20px (отступ панели) + 20px (зазор) */
             width: 45px;
             height: 120px; /* Фиксированная высота в пикселях */
             background: white;
@@ -748,7 +748,7 @@
                 // Разворачиваем
                 panel.classList.remove('collapsed');
                 btn.classList.remove('panel-hidden');
-                btn.style.left = '300px';
+                btn.style.left = '330px';
                 btn.title = 'Свернуть панель';
             } else {
                 // Сворачиваем
