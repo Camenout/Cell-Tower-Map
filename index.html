@@ -326,7 +326,7 @@
     <div id="map"></div>
     
     <!-- ЛЕВАЯ ПАНЕЛЬ — всё управление здесь -->
-    <div class="left-panel">
+    <div class="left-panel" id="leftPanel">
         <!-- Секция: Информация о вышке -->
         <div class="panel-section">
             <div class="section-title">📡 Вышка</div>
@@ -380,12 +380,12 @@
         </div>
     </div>
 
-        <!-- КНОПКА СВОРАЧИВАНИЯ -->
-        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="togglePanel()" title="Свернуть панель">
-            <div class="hamburger-line"></div>
-            <div class="hamburger-line"></div>
-            <div class="hamburger-line"></div>
-        </button>
+    <!-- КНОПКА СВОРАЧИВАНИЯ -->
+    <button class="toggle-panel-btn" id="togglePanelBtn" onclick="togglePanel()" title="Свернуть панель">
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+    </button>
     
     <div class="status-bar" id="statusBar">
         🗺️ Карта готова
