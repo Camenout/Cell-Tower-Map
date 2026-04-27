@@ -716,14 +716,32 @@
 
         // === Сворачивание/разворачивание панели ===
         function togglePanel() {
+            // Ищем элементы прямо в момент клика
             var panel = document.getElementById('leftPanel');
             var btn = document.getElementById('togglePanelBtn');
             
+            // Если не нашли — пробуем ещё раз через небольшую задержку
             if (!panel || !btn) {
-                console.log('Панель или кнопка не найдены!');
+                console.log('Элементы не найдены, пробуем ещё раз...');
+                setTimeout(function() {
+                    panel = document.getElementById('leftPanel');
+                    btn = document.getElementById('togglePanelBtn');
+                    
+                    if (!panel || !btn) {
+                        console.log('Элементы всё ещё не найдены. Проверь HTML.');
+                        return;
+                    }
+                    
+                    togglePanelAction(panel, btn);
+                }, 100);
                 return;
             }
             
+            togglePanelAction(panel, btn);
+        }
+        
+        // === Действие сворачивания ===
+        function togglePanelAction(panel, btn) {
             var isCollapsed = panel.classList.contains('collapsed');
             
             if (isCollapsed) {
