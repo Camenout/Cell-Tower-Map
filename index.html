@@ -443,6 +443,52 @@
             script.onerror = function() { showStatus('Ошибка загрузки API', true); };
             document.head.appendChild(script);
         }
+
+        // === Загрузка зон из GeoJSON файла ===
+        var greenZoneObjects = [];
+
+        function loadZonesFromGeoJSON(url) {
+            if (!map) return;
+            
+            fetch(url)
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Файл не найден');
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    var geoObjects = ymaps.geoQuery(data).addToMap(map);
+                    
+                    geoObjects.each(function(obj) {
+                        if (obj.geometry && obj.geometry.getType() === 'Polygon') {
+                            // Получаем цвета из GeoJSON
+                            var props = obj.properties;
+                            var fillColor = props.get('fill') || '#56db40';
+                            var strokeColor = props.get('stroke') || '#1bad03';
+                            var fillOpacity = props.get('fill-opacity') || 0.4;
+                            var strokeWidth = props.get('stroke-width') || 3;
+                            
+                            obj.options.set({
+                                fillColor: fillColor,
+                                strokeColor: strokeColor,
+                                strokeWidth: parseInt(strokeWidth),
+                                fillOpacity: parseFloat(fillOpacity),
+                                hasBalloon: false,
+                                hasHint: false,
+                                interactive: false
+                            });
+                        }
+                    });
+                    
+                    var count = data.features ? data.features.length : 0;
+                    showStatus('✅ Загружено зон из GeoJSON: ' + count, false);
+                })
+                .catch(function(error) {
+                    console.log('Ошибка загрузки GeoJSON:', error.message);
+                    showStatus('⚠️ Зоны не загружены: ' + error.message, true);
+                });
+        }
         
         // === Инициализация карты ===
         function initMap() {
@@ -491,6 +537,9 @@
             } else {
                 addReferenceMarker();
             }
+
+            // ✅ Загружаем зелёные зоны
+            loadZonesFromGeoJSON('zones.geojson');
             
             map.events.add('click', function(e) {
                 if (addMode) addPoint(e.get('coords'));
