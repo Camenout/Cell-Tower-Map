@@ -29,7 +29,59 @@
             z-index: 1000;
             font-size: 14px;
             width: 280px;
+            transform: translateX(0);
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
+        
+        /* Панель скрыта */
+        .left-panel.collapsed {
+            transform: translateX(-400px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Кнопка-остров справа от панели */
+        .toggle-panel-btn {
+            position: absolute;
+            top: 10px;
+            left: 330px; /* 280px (панель) + 20px (отступ панели) + 20px (зазор) */
+            width: 45px;
+            height: 120px; /* Фиксированная высота в пикселях */
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            transition: left 0.3s ease;
+        }
+        
+        .toggle-panel-btn:hover {
+            background: #f5f5f5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        /* Когда панель скрыта — кнопка слева */
+        .toggle-panel-btn.panel-hidden {
+            left: 10px;
+        }
+        
+        /* Три полоски */
+        .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background: #666;
+            border-radius: 2px;
+        }
+
+        /*Изменения выше /\ */
         
         .panel-section {
             margin-bottom: 16px;
@@ -274,7 +326,7 @@
     <div id="map"></div>
     
     <!-- ЛЕВАЯ ПАНЕЛЬ — всё управление здесь -->
-    <div class="left-panel">
+    <div class="left-panel" id="leftPanel">
         <!-- Секция: Информация о вышке -->
         <div class="panel-section">
             <div class="section-title">📡 Вышка</div>
@@ -327,6 +379,13 @@
             </button>
         </div>
     </div>
+
+    <!-- КНОПКА СВОРАЧИВАНИЯ -->
+    <button class="toggle-panel-btn" id="togglePanelBtn" onclick="togglePanel()" title="Свернуть панель">
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+    </button>
     
     <div class="status-bar" id="statusBar">
         🗺️ Карта готова
@@ -436,6 +495,10 @@
             map.events.add('click', function(e) {
                 if (addMode) addPoint(e.get('coords'));
             });
+
+            setTimeout(function() {
+            updateToggleButtonHeight();
+            }, 200);
         }
         
         // === Обновление карточки вышки ===
@@ -650,6 +713,74 @@
             input.value = '';
             showStatus('✅ Точка добавлена: ' + lat.toFixed(6) + ', ' + lon.toFixed(6), false);
         }
+
+        // === Сворачивание/разворачивание панели ===
+        function togglePanel() {
+            // Ищем элементы прямо в момент клика
+            var panel = document.getElementById('leftPanel');
+            var btn = document.getElementById('togglePanelBtn');
+            
+            // Если не нашли — пробуем ещё раз через небольшую задержку
+            if (!panel || !btn) {
+                console.log('Элементы не найдены, пробуем ещё раз...');
+                setTimeout(function() {
+                    panel = document.getElementById('leftPanel');
+                    btn = document.getElementById('togglePanelBtn');
+                    
+                    if (!panel || !btn) {
+                        console.log('Элементы всё ещё не найдены. Проверь HTML.');
+                        return;
+                    }
+                    
+                    togglePanelAction(panel, btn);
+                }, 100);
+                return;
+            }
+            
+            togglePanelAction(panel, btn);
+        }
+        
+        // === Действие сворачивания ===
+        function togglePanelAction(panel, btn) {
+            var isCollapsed = panel.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                // Разворачиваем
+                panel.classList.remove('collapsed');
+                btn.classList.remove('panel-hidden');
+                btn.style.left = '330px';
+                btn.title = 'Свернуть панель';
+            } else {
+                // Сворачиваем
+                panel.classList.add('collapsed');
+                btn.classList.add('panel-hidden');
+                btn.style.left = '10px';
+                btn.title = 'Развернуть панель';
+            }
+        }
+
+                // === Обновление высоты кнопки сворачивания ===
+        function updateToggleButtonHeight() {
+            var panel = document.getElementById('leftPanel');
+            var btn = document.getElementById('togglePanelBtn');
+            
+            if (panel && btn) {
+                var panelHeight = panel.offsetHeight;
+                btn.style.height = panelHeight + 'px';
+            }
+        }
+        
+        // Обновляем позицию кнопки при изменении размеров окна
+        window.addEventListener('resize', function() {
+            var panel = document.getElementById('leftPanel');
+            var btn = document.getElementById('togglePanelBtn');
+            
+            if (panel.classList.contains('collapsed')) {
+                btn.style.left = '10px';
+            } else {
+                btn.style.left = '290px';
+            }
+        });
         
         // === Обновление списка точек ===
         function updatePointsList() {
@@ -794,6 +925,22 @@
             
             loadYandexApi(apiKey);
         })();
+
+        // Обновление позиции кнопки при изменении размеров окна
+        window.addEventListener('resize', function() {
+            var panel = document.getElementById('leftPanel');
+            var btn = document.getElementById('togglePanelBtn');
+            
+            updateToggleButtonHeight();
+            
+            if (panel && btn) {
+                if (panel.classList.contains('collapsed')) {
+                    btn.style.left = '10px';
+                } else {
+                    btn.style.left = '300px';
+                }
+            }
+        });
     </script>
 </body>
 </html>
