@@ -448,7 +448,7 @@
         var greenZoneObjects = [];
 
         // === Загрузка зон из GeoJSON ===
-        function loadZonesFromGeoJSON(url) {
+        function loadZonesFromGeoJSON(url, color, strokePanel) {
             console.log('🔄 Загружаю зоны из:', url);
             
             fetch(url)
@@ -480,8 +480,8 @@
                                 [fixedCoords],
                                 {},
                                 {
-                                    fillColor: '#56db40',
-                                    strokeColor: '#1bad03',
+                                    fillColor: color,
+                                    strokeColor: strokePanel,
                                     strokeWidth: 3,
                                     fillOpacity: 0.4,
                                     hasBalloon: false,
@@ -550,8 +550,8 @@
             }
 
             // ✅ Загружаем зелёные зоны
-            loadZonesFromGeoJSON('zones.geojson');
-            loadZonesFromGeoJSON('hs.geojson');
+            loadZonesFromGeoJSON('zones.geojson', '#56db40' , '#1bad03');
+            loadZonesFromGeoJSON('hs.geojson', '#515151', '#202022');
             
             map.events.add('click', function(e) {
                 if (addMode) addPoint(e.get('coords'));
