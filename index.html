@@ -346,6 +346,11 @@
             <button class="control-btn btn-info" onclick="toggleAddMode()" id="modeBtn">
                 ✏️ Добавление точек: ВКЛ
             </button>
+
+            <button class="control-btn btn-primary" id="toggleZonesBtn" onclick="toggleGreenZones()" style="background: #4CAF50;">
+            🟢 Зелёные зоны: ВКЛ
+            </button>
+            
         </div>
         
         <!-- Секция: Добавление по координатам -->
@@ -444,8 +449,9 @@
             document.head.appendChild(script);
         }
 
-        // === Загрузка зон из GeoJSON файла ===
+        // === Хранилище для зелёных зон ===
         var greenZoneObjects = [];
+        var greenZonesVisible = true;
 
         // === Загрузка зон из GeoJSON ===
         function loadZonesFromGeoJSON(url, color, strokePanel) {
@@ -461,23 +467,36 @@
                 .then(function(data) {
                     console.log('📦 Файл загружен, зон:', data.features.length);
                     
-                    // Перебираем все зоны вручную
                     for (var i = 0; i < data.features.length; i++) {
                         var feature = data.features[i];
                         
-                        if (feature.geometry.type === 'Polygon') {
-                            // Координаты в GeoJSON идут как [lon, lat],
-                            // а Яндекс.Карты ожидают [lat, lon] — переворачиваем
+                        if (feature.geometry.type === 'Polygon' && feature.geometry.coordinates[0].length > 0) {
                             var coords = feature.geometry.coordinates[0];
                             var fixedCoords = [];
                             
                             for (var j = 0; j < coords.length; j++) {
-                                fixedCoords.push([coords[j][1], coords[j][0]]); // меняем местами
+                                fixedCoords.push([coords[j][1], coords[j][0]]);
                             }
                             
-                            // Создаём полигон
+                            // Дырки
+                            var holes = [];
+                            if (feature.geometry.coordinates.length > 1) {
+                                for (var h = 1; h < feature.geometry.coordinates.length; h++) {
+                                    var holeCoords = feature.geometry.coordinates[h];
+                                    if (holeCoords.length > 0) {
+                                        var fixedHole = [];
+                                        for (var k = 0; k < holeCoords.length; k++) {
+                                            fixedHole.push([holeCoords[k][1], holeCoords[k][0]]);
+                                        }
+                                        holes.push(fixedHole);
+                                    }
+                                }
+                            }
+                            
+                            var allCoords = [fixedCoords].concat(holes);
+                            
                             var polygon = new ymaps.Polygon(
-                                [fixedCoords],
+                                allCoords,
                                 {},
                                 {
                                     fillColor: color,
@@ -486,19 +505,51 @@
                                     fillOpacity: 0.4,
                                     hasBalloon: false,
                                     hasHint: false,
-                                    interactive: false
+                                    interactive: false,
+                                    visible: true
                                 }
                             );
                             
                             map.geoObjects.add(polygon);
+                            
+                            // Сохраняем только зелёные зоны для управления видимостью
+                            if (color === '#56db40' || color === '#4CAF50') {
+                                greenZoneObjects.push(polygon);
+                            }
                         }
                     }
                     
                     console.log('✅ Зоны добавлены. Объектов на карте:', map.geoObjects.getLength());
+                    if (color === '#56db40' || color === '#4CAF50') {
+                        console.log('🟢 Зелёных зон в массиве:', greenZoneObjects.length);
+                    }
                 })
                 .catch(function(error) {
                     console.log('❌ Ошибка:', error.message);
                 });
+        }
+
+        // === Переключение видимости зелёных зон ===
+        function toggleGreenZones() {
+            greenZonesVisible = !greenZonesVisible;
+            
+            for (var i = 0; i < greenZoneObjects.length; i++) {
+                greenZoneObjects[i].options.set('visible', greenZonesVisible);
+            }
+            
+            var btn = document.getElementById('toggleZonesBtn');
+            
+            if (greenZonesVisible) {
+                btn.innerHTML = '🟢 Зелёные зоны: ВКЛ';
+                btn.className = 'control-btn btn-primary';
+                btn.style.background = '#4CAF50';
+                showStatus('Зелёные зоны включены', false);
+            } else {
+                btn.innerHTML = '🔘 Зелёные зоны: ВЫКЛ';
+                btn.className = 'control-btn btn-warning';
+                btn.style.background = '#9e9e9e';
+                showStatus('Зелёные зоны скрыты', false);
+            }
         }
         
         // === Инициализация карты ===
