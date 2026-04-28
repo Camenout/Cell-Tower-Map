@@ -551,6 +551,7 @@
 
             // ✅ Загружаем зелёные зоны
             loadZonesFromGeoJSON('zones.geojson');
+            loadZonesFromGeoJSON('hs.geojson');
             
             map.events.add('click', function(e) {
                 if (addMode) addPoint(e.get('coords'));
