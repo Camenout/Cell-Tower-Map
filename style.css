@@ -1,0 +1,315 @@
+body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Левая панель — всё управление здесь */
+        .left-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 14px;
+            width: 280px;
+            transform: translateX(0);
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        /* Панель скрыта */
+        .left-panel.collapsed {
+            transform: translateX(-400px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Кнопка-остров справа от панели */
+        .toggle-panel-btn {
+            position: absolute;
+            top: 10px;
+            left: 330px; /* 280px (панель) + 20px (отступ панели) + 20px (зазор) */
+            width: 45px;
+            height: 120px; /* Фиксированная высота в пикселях */
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            transition: left 0.3s ease;
+        }
+        
+        .toggle-panel-btn:hover {
+            background: #f5f5f5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        /* Когда панель скрыта — кнопка слева */
+        .toggle-panel-btn.panel-hidden {
+            left: 10px;
+        }
+        
+        /* Три полоски */
+        .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background: #666;
+            border-radius: 2px;
+        }
+
+        /*Изменения выше /\ */
+        
+        .panel-section {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .panel-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+        }
+        
+        /* Карточка вышки */
+        .tower-card {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 5px;
+        }
+        
+        .tower-coords {
+            font-family: monospace;
+            font-size: 13px;
+            background: #e9ecef;
+            padding: 6px 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .coords-text {
+            cursor: pointer;
+            color: #2196F3;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        
+        .coords-text:hover {
+            color: #0b7dda;
+        }
+        
+        .copy-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .copy-btn:hover {
+            background: #0b7dda;
+        }
+        
+        /* Кнопки управления */
+        .control-btn {
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .control-btn:last-child {
+            margin-bottom: 0;
+        }
+        
+        .btn-yandex {
+            background: #FFCC00;
+            color: #000;
+        }
+        
+        .btn-yandex:hover {
+            background: #FFD633;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .btn-info {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #0b7dda;
+        }
+        
+        /* Поле ввода координат */
+        .coord-input-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .coord-input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        .coord-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        /* Список точек */
+        .points-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+        
+        .point-item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .point-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .point-coords {
+            font-family: monospace;
+            color: #666;
+        }
+        
+        .point-distance {
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+        
+        .point-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 4px;
+            opacity: 0.6;
+        }
+        
+        .icon-btn:hover {
+            opacity: 1;
+        }
+        
+        .empty-message {
+            color: #999;
+            font-style: italic;
+            font-size: 12px;
+            padding: 8px;
+            text-align: center;
+        }
+        
+        .point-count {
+            background: #666;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        .status-bar {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .radius-badge {
+            background: #ff9800;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
