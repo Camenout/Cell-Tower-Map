@@ -206,11 +206,62 @@
             loadZonesFromGeoJSON('geojson/KRD_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
             loadZonesFromGeoJSON('geojson/SCH_24.04.2026.geojson', '#a4d6c7' , '#1bad03');
             loadZonesFromGeoJSON('geojson/SPB_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
-            loadZonesFromGeoJSON('geojson/hs.geojson', '#202022', '#373739');
+            loadZonesFromGeoJSON('geojson/PENALTY.geojson', '#202022', '#373739');
             
             map.events.add('click', function(e) {
                 if (addMode) addPoint(e.get('coords'));
             });
+
+            // === Обработчик правого клика — копирование координат ===
+            map.events.add('contextmenu', function(e) {
+                e.preventDefault();
+                
+                var coords = e.get('coords');
+                var lat = coords[0].toFixed(6);
+                var lon = coords[1].toFixed(6);
+                var coordText = lat + ', ' + lon;
+                
+                // Получаем координаты мыши через глобальный объект события
+                var globalEvent = e.get('domEvent').originalEvent;
+                var mouseX = globalEvent.clientX;
+                var mouseY = globalEvent.clientY;
+                
+                // Создаём всплывающую подсказку
+                var tooltip = document.createElement('div');
+                tooltip.className = 'copy-tooltip';
+                tooltip.textContent = '📋 ' + coordText;
+                tooltip.style.left = mouseX + 'px';
+                tooltip.style.top = (mouseY - 50) + 'px';
+                
+                document.body.appendChild(tooltip);
+                
+                // Анимация появления
+                setTimeout(function() {
+                    tooltip.style.opacity = '1';
+                    tooltip.style.transform = 'translate(-50%, -10px)';
+                }, 10);
+                
+                // Удаляем через 0,5 секунды
+                setTimeout(function() {
+                    tooltip.style.opacity = '0';
+                    tooltip.style.transform = 'translate(-50%, -25px)';
+                    setTimeout(function() {
+                        if (tooltip.parentNode) {
+                            document.body.removeChild(tooltip);
+                        }
+                    }, 300);
+                }, 500);
+                
+                // Копируем в буфер обмена
+                navigator.clipboard.writeText(coordText).catch(function() {
+                    var textarea = document.createElement('textarea');
+                    textarea.value = coordText;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                });
+            });          
 
             setTimeout(function() {
             updateToggleButtonHeight();
