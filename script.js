@@ -202,11 +202,11 @@
             }
 
             // ✅ Загружаем зелёные зоны
-            loadZonesFromGeoJSON('MSK_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
-            loadZonesFromGeoJSON('KRD_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
-            loadZonesFromGeoJSON('SCH_24.04.2026.geojson', '#a4d6c7' , '#1bad03');
-            loadZonesFromGeoJSON('SPB_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
-            loadZonesFromGeoJSON('hs.geojson', '#202022', '#373739');
+            loadZonesFromGeoJSON('geojson/MSK_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
+            loadZonesFromGeoJSON('geojson/KRD_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
+            loadZonesFromGeoJSON('geojson/SCH_24.04.2026.geojson', '#a4d6c7' , '#1bad03');
+            loadZonesFromGeoJSON('geojson/SPB_23.04.2026.geojson', '#a4d6c7' , '#1bad03');
+            loadZonesFromGeoJSON('geojson/hs.geojson', '#202022', '#373739');
             
             map.events.add('click', function(e) {
                 if (addMode) addPoint(e.get('coords'));
@@ -588,45 +588,47 @@
             }
         }
         
-        // === Открытие в Яндекс.Картах ===
+        // === Открытие в Яндекс.Картах с сохранением положения камеры ===
         function openInYandexMaps() {
-            if (!referencePoint) return;
+            if (!map) return;
             
-            // Собираем все точки
-            var allPoints = [referencePoint.coords];
+            // Получаем текущий центр карты
+            var center = map.getCenter();
+            var lat = center[0];
+            var lon = center[1];
+            
+            // Получаем текущий зум
+            var zoom = map.getZoom();
+            
+            // Собираем все точки для меток
+            var allPoints = [];
+            
+            // Добавляем точку отсчёта (вышку или центр)
+            if (referencePoint) {
+                allPoints.push(referencePoint.coords);
+            }
+            
+            // Добавляем все пользовательские точки
             for (var i = 0; i < addedPoints.length; i++) {
                 allPoints.push(addedPoints[i].coords);
             }
             
-            // Определяем центр карты (вышка или первая точка)
-            var center = referencePoint.coords;
+            // Формируем URL
+            var ll = lon.toFixed(6) + ',' + lat.toFixed(6);
+            var url = 'https://yandex.ru/maps/?ll=' + ll + '&z=' + zoom;
             
-            // Формируем URL с метками
-            // Используем формат: https://yandex.ru/maps/?ll=lon,lat&z=14&pt=lon1,lat1~lon2,lat2
-            
-            var ll = center[1].toFixed(6) + ',' + center[0].toFixed(6);
-            
-            // Формируем метки: красная для вышки, синие для остальных
-            var placemarks = [];
-            
-            // Вышка — красная метка (если это режим вышки)
-            if (referencePoint.isTower) {
-                placemarks.push(center[1].toFixed(6) + ',' + center[0].toFixed(6) + ',pm2rdl'); // pm2rdl = красная метка
-            } else {
-                placemarks.push(center[1].toFixed(6) + ',' + center[0].toFixed(6) + ',pm2gnl'); // зелёная для свободного режима
+            // Добавляем метки
+            if (allPoints.length > 0) {
+                var ptParams = [];
+                for (var i = 0; i < allPoints.length; i++) {
+                    var p = allPoints[i];
+                    ptParams.push(p[1].toFixed(6) + ',' + p[0].toFixed(6));
+                }
+                url += '&pt=' + ptParams.join('~');
             }
-            
-            // Добавленные точки — синие метки
-            for (var i = 0; i < addedPoints.length; i++) {
-                var p = addedPoints[i].coords;
-                placemarks.push(p[1].toFixed(6) + ',' + p[0].toFixed(6) + ',pm2blm'); // pm2blm = синяя метка
-            }
-            
-            // Собираем URL
-            var url = 'https://yandex.ru/maps/?ll=' + ll + '&z=14&pt=' + placemarks.join('~');
             
             window.open(url, '_blank');
-            showStatus('Открыто в Яндекс.Картах (' + allPoints.length + ' точек)', false);
+            showStatus('Открыто в Яндекс.Картах (зум: ' + zoom + ')', false);
         }
         
         // === Запуск ===
