@@ -8,7 +8,7 @@
         var DEFAULT_COORDS = [55.751244, 37.618423];
         var DEFAULT_ZOOM = 10;
         
-        // === Вспомогательные функции ===
+        // === Вспомогательные функции для работы кода ===
         function getUrlParams() {
             var urlParams = new URLSearchParams(window.location.search);
             var dataParam = urlParams.get('data');
