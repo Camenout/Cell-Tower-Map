@@ -212,47 +212,43 @@
                 if (addMode) addPoint(e.get('coords'));
             });
 
-            // === Обработчик правого клика — копирование координат ===
+            // ===== Обработчик ПКМ — копирование + открытие панорамы =====
             map.events.add('contextmenu', function(e) {
                 e.preventDefault();
                 
                 var coords = e.get('coords');
-                var lat = coords[0].toFixed(6);
-                var lon = coords[1].toFixed(6);
-                var coordText = lat + ', ' + lon;
+                if (!coords) return;
+
+                var latStr = coords[0].toFixed(6);
+                var lonStr = coords[1].toFixed(6);
+                var coordText = latStr + ', ' + lonStr;
                 
-                // Получаем координаты мыши через глобальный объект события
+                // Получаем координаты мыши для тултипа
                 var globalEvent = e.get('domEvent').originalEvent;
                 var mouseX = globalEvent.clientX;
                 var mouseY = globalEvent.clientY;
                 
-                // Создаём всплывающую подсказку
+                // Тултип
                 var tooltip = document.createElement('div');
                 tooltip.className = 'copy-tooltip';
                 tooltip.textContent = '📋 ' + coordText;
                 tooltip.style.left = mouseX + 'px';
                 tooltip.style.top = (mouseY - 50) + 'px';
-                
                 document.body.appendChild(tooltip);
                 
-                // Анимация появления
                 setTimeout(function() {
                     tooltip.style.opacity = '1';
                     tooltip.style.transform = 'translate(-50%, -10px)';
                 }, 10);
-                
-                // Удаляем через 0,5 секунды
                 setTimeout(function() {
                     tooltip.style.opacity = '0';
                     tooltip.style.transform = 'translate(-50%, -25px)';
                     setTimeout(function() {
-                        if (tooltip.parentNode) {
-                            document.body.removeChild(tooltip);
-                        }
+                        if (tooltip.parentNode) document.body.removeChild(tooltip);
                     }, 300);
                 }, 500);
                 
-                // Копируем в буфер обмена
+                // Копирование
                 navigator.clipboard.writeText(coordText).catch(function() {
                     var textarea = document.createElement('textarea');
                     textarea.value = coordText;
@@ -261,7 +257,74 @@
                     document.execCommand('copy');
                     document.body.removeChild(textarea);
                 });
-            });          
+
+                // Открытие панорамы (твой способ)
+                var base = 'https://yandex.ru/maps/213/moscow/?l=stv%2Csta';
+                var params = new URLSearchParams();
+                params.set('ll',                  `${lonStr},${latStr}`);
+                params.set('panorama[direction]', '67.445710,0.000000');
+                params.set('panorama[full]',      'true');
+                params.set('panorama[point]',     `${lonStr},${latStr}`);
+                params.set('panorama[span]',      '126.128538,60.000000');
+                params.set('pt',                  `${lonStr},${latStr}`);
+                params.set('z', '19.8');
+
+                var url = `${base}&${params.toString()}`;
+                window.open(url, '_blank');
+            });
+
+
+            // ===== Обработчик СКМ — только копирование =====
+
+            // Гасим автоскролл
+            map.events.add('mousedown', function(e) {
+                var domEvent = e.get('domEvent');
+                if (domEvent && domEvent.originalEvent && domEvent.originalEvent.button === 1) {
+                    domEvent.originalEvent.preventDefault();
+                }
+            });
+
+            map.events.add('mouseup', function(e) {
+                var domEvent = e.get('domEvent');
+                if (!domEvent || !domEvent.originalEvent || domEvent.originalEvent.button !== 1) return;
+
+                var coords = e.get('coords');
+                if (!coords) return;
+
+                var latStr = coords[0].toFixed(6);
+                var lonStr = coords[1].toFixed(6);
+                var coordText = latStr + ', ' + lonStr;
+
+                // Тултип
+                var tooltip = document.createElement('div');
+                tooltip.className = 'copy-tooltip';
+                tooltip.textContent = '📋 ' + coordText;
+                tooltip.style.left = domEvent.originalEvent.clientX + 'px';
+                tooltip.style.top  = (domEvent.originalEvent.clientY - 50) + 'px';
+                document.body.appendChild(tooltip);
+                
+                setTimeout(function() {
+                    tooltip.style.opacity = '1';
+                    tooltip.style.transform = 'translate(-50%, -10px)';
+                }, 10);
+                setTimeout(function() {
+                    tooltip.style.opacity = '0';
+                    tooltip.style.transform = 'translate(-50%, -25px)';
+                    setTimeout(function() {
+                        if (tooltip.parentNode) document.body.removeChild(tooltip);
+                    }, 300);
+                }, 500);
+
+                // Копирование
+                navigator.clipboard.writeText(coordText).catch(function() {
+                    var textarea = document.createElement('textarea');
+                    textarea.value = coordText;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                });
+            });      
 
             setTimeout(function() {
             updateToggleButtonHeight();
@@ -686,6 +749,7 @@
         (function startup() {
             var urlParams = new URLSearchParams(window.location.search);
             var apiKey = urlParams.get('apikey');
+            
             
             if (!apiKey) {
                 document.getElementById('statusBar').innerHTML = '❌ API-ключ не передан';
